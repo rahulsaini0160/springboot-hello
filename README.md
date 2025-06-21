@@ -66,3 +66,69 @@ java -jar target/your-app-name.jar
 - Use the provided endpoints to interact with the app.
 - Run `mvn test` to execute test cases.
 - Run `mvn package` to create a JAR file in the `target/` folder.
+
+# CI/CD with GitHub Actions
+
+This project uses **GitHub Actions** to automate testing, running, and building your Spring Boot application. The workflow file is located at `.github/workflows/ci-cd.yml`.
+
+---
+
+### When does the workflow run?
+
+- **On every push** to the `main` or `develop` branches.
+- **On every pull request** to the `main` branch.
+
+---
+
+### What does the workflow do?
+
+The workflow is divided into three jobs (stages):
+
+#### 1. **Test**
+- **Runs on:** Ubuntu Linux.
+- **What it does:**
+  - Checks out your code from GitHub.
+  - Sets up Java 17 (required for Spring Boot).
+  - Caches Maven dependencies to speed up builds.
+  - Runs all tests using Maven (`mvn clean test`).
+- **Purpose:** Ensures your code is correct and all tests pass before moving to the next steps.
+
+#### 2. **Run**
+- **Runs on:** Ubuntu Linux.
+- **Depends on:** The `test` job (only runs if tests pass).
+- **What it does:**
+  - Checks out your code and sets up Java 17 (again, each job is isolated).
+  - Caches Maven dependencies.
+  - Starts your Spring Boot application in the background (`mvn spring-boot:run &`).
+  - Waits 20 seconds to let the app start.
+  - Checks if the app is running by calling the `/health` endpoint.
+- **Purpose:** Verifies that your application can start successfully and is healthy.
+
+#### 3. **Build**
+- **Runs on:** Ubuntu Linux.
+- **Depends on:** The `run` job (only runs if the app started successfully).
+- **What it does:**
+  - Checks out your code and sets up Java 17.
+  - Caches Maven dependencies.
+  - Packages your application into a JAR file (`mvn package -DskipTests`).
+  - Uploads the JAR file as an artifact so you can download it from the workflow run.
+- **Purpose:** Creates a distributable JAR file if all previous steps succeed.
+
+---
+
+### Why is this useful?
+
+- **Automates testing and building** every time you push code or open a pull request.
+- **Ensures your app works** before you deploy or share it.
+- **Provides downloadable build artifacts** (the JAR file) from each workflow run.
+- **No manual steps needed**—GitHub Actions does everything for you!
+
+---
+
+### Summary of Workflow Steps
+
+1. **Test:** Make sure your code is correct.
+2. **Run:** Make sure your app starts and is healthy.
+3. **Build:** Package your app into a JAR file for deployment or sharing.
+
+You can find the workflow file at `.github/workflows/ci-cd.yml` in this repository.
