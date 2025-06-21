@@ -22,17 +22,17 @@ jobs:
           git clone https://github.com/${{ github.repository }}.git &&
           cd springboot-quickstart &&
           git checkout ${{ github.ref_name }} &&
-          ./mvnw clean test
+          mvn clean test
         "
     - name: Run application on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
           cd springboot-quickstart &&
-          nohup ./mvnw spring-boot:run > app.log 2>&1 &
+          nohup mvn spring-boot:run > app.log 2>&1 &
         "
     - name: Build JAR on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
           cd springboot-quickstart &&
-          ./mvnw package -DskipTests
+          mvn package -DskipTests
         "
