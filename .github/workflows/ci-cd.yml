@@ -60,7 +60,7 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Package application
       run: mvn package -DskipTests
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: jar-artifact
         path: target/*.jar
