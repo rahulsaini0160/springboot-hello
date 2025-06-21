@@ -28,8 +28,18 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
           cd springboot-quickstart &&
-          nohup mvn spring-boot:run > app.log 2>&1 &
+          git fetch origin
+          git checkout ${{ github.ref_name }}
+          git pull
+          nohup mvn spring-boot:run > app.log 2>&1 & 
+          exit
         "
+    - name: Wait for app to start
+      run: sleep 20
+    - name: Check if app is running on EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "curl -f http://localhost:8080/health"
+        
     - name: Build JAR on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
