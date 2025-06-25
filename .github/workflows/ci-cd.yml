@@ -93,6 +93,9 @@ jobs:
         port: 22
         script: |
           pkill -f 'java -jar' || true
-          cd /home/ubuntu/app
-          setsid java -jar *.jar > app.log 2>&1 < /dev/null &
+          cd /home/ubuntu/spring_boot_application/target
+          setsid java -jar hello-world-0.0.1-SNAPSHOT.jar > app.log 2>&1 < /dev/null &
+          sleep 20
+          echo "==== checking whether it's running or not ===="
+          curl http://localhost:8080/health
 
