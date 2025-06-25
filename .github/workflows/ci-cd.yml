@@ -93,5 +93,6 @@ jobs:
         port: 22
         script: |
           pkill -f 'java -jar' || true
-          nohup java -jar /home/ubuntu/app/*.jar > /home/ubuntu/app/app.log 2>&1 &
+          cd /home/ubuntu/app
+          setsid java -jar *.jar > app.log 2>&1 < /dev/null &
 
