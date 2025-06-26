@@ -18,16 +18,16 @@ jobs:
     - name: Clone repo and run tests on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-          rm -rf springboot-quickstart &&
+          rm -rf springboot-hello &&
           git clone https://github.com/${{ github.repository }}.git &&
-          cd springboot-quickstart &&
+          cd springboot-hello &&
           git checkout ${{ github.ref_name }} &&
           mvn clean test
         "
     - name: Run application on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-          cd springboot-quickstart &&
+          cd springboot-hello &&
           git fetch origin
           git checkout ${{ github.ref_name }}
           git pull
@@ -43,6 +43,6 @@ jobs:
     - name: Build JAR on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-          cd springboot-quickstart &&
+          cd springboot-hello &&
           mvn package -DskipTests
         "
