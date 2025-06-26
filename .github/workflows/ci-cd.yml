@@ -10,92 +10,87 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    - name: Run tests
-      run: mvn clean test
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  run:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    - name: Run the application
-      run: mvn spring-boot:run &
-    - name: Wait for app to start
-      run: sleep 20
-    - name: Check if app is running
-      run: curl -f http://localhost:8080/health
+      - name: Set up Java SDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Run test cases
+        run: mvn -B test -DtrimStackTrace=true
 
   build:
     runs-on: ubuntu-latest
-    needs: run
+    needs: test
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - uses: actions/cache@v3
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    - name: Package application
-      run: mvn package -DskipTests
-    - uses: actions/upload-artifact@v4
-      with:
-        name: jar-artifact
-        path: target/*.jar
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java SDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build jar file
+        run: |
+          mvn -q package
+          ls -l target
+          file target/hello-world-0.0.1-SNAPSHOT.jar
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: jar-artifact
-        path: .
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Upload JAR to EC2
-      uses: appleboy/scp-action@v1
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        port: 22
-        source: "*.jar"
-        target: "/home/ubuntu/app"
+      - name: Set up Java SDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Restart Spring Boot App on EC2
-      uses: appleboy/ssh-action@v1
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        port: 22
-        script: |
-          pkill -f 'java -jar' || true
-          cd /home/ubuntu/spring_boot_application/target
-          setsid java -jar hello-world-0.0.1-SNAPSHOT.jar > app.log 2>&1 < /dev/null &
-          sleep 20
-          echo "==== checking whether it's running or not ===="
-          curl http://localhost:8080/health
+      - name: Create target directory on EC2 (clean old)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH }}
+          port: 22
+          script: |
+            if [ -d "/home/ubuntu/spring_boot_application/" ]; then
+              echo "Directory exists. Cleaning up..."
+              rm -rf /home/ubuntu/spring_boot_application/*
+            else
+              echo "Directory not found. Creating it..."
+              mkdir -p /home/ubuntu/spring_boot_application/
+            fi
+            ls -l /home/ubuntu/spring_boot_application/
 
+      - name: Copy JAR to EC2
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH }}
+          source: "target/hello-world-0.0.1-SNAPSHOT.jar"
+          target: "/home/ubuntu/spring_boot_application/"
+
+      - name: Run JAR on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH }}
+          port: 22
+          script: |
+            pkill -f 'java -jar' || true
+            cd /home/ubuntu/spring_boot_application
+            nohup java -jar hello-world-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+            sleep 20
+            echo "Checking health endpoint..."
+            curl -f http://localhost:8080/health
