@@ -92,7 +92,7 @@ jobs:
       
             echo "Starting Spring Boot app in background"
             cd /home/ubuntu/spring_boot_application
-            nohup java -jar hello-world-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+            nohup java -jar hello-world-0.0.1-SNAPSHOT.jar > app.log 2>&1 < /dev/null & disown
       
             echo "Waiting for app to start..."
             sleep 20
